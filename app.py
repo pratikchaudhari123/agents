@@ -15,7 +15,7 @@ LOCK = threading.Lock()
 PENDING = {}
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 def db():
-    c = sqlite3.connect(STATE / "chat.db")
+    c = sqlite3.connect(STATE / "chat.db", timeout=15)
     c.execute("create table if not exists messages(id integer primary key, payload text)")
     c.execute("create table if not exists registry(kind text, name text, detail text, status text, updated text, primary key(kind,name))")
     c.execute("create table if not exists events(id integer primary key, at text, detail text)")
@@ -89,8 +89,19 @@ def docker_check():
         sections.append(title+" ["+("OK" if item["exit_code"]==0 else "FAILED")+"]\n"+item["output"].strip())
     sections.append("No containers, databases or files were modified. Container health does not verify database credentials or contents.")
     return "\n\n".join(sections)
-TOOLS = [spec("inspect_docker","Directly inspect Docker installation, daemon, containers, images, compose projects and disk usage on this Mac. Read-only; no approval needed.",[]),spec("register_capability","Register an agent, tool or connection; status remains unverified until independently tested",["kind","name","detail"]),spec("list_files","List directory in workspace",["path"]),spec("read_file","Read a text file in workspace",["path"]),spec("write_file","Propose writing a file; owner approval required",["path","content"]),spec("run_command","Propose a shell command; owner approval required",["command"])]
+TOOLS = [spec("discover_projects","Discover existing local development projects by checking common Mac project directories without reading credentials or modifying files.",[]),spec("inspect_docker","Directly inspect Docker installation, daemon, containers, images, compose projects and disk usage on this Mac. Read-only; no approval needed.",[]),spec("register_capability","Register an agent, tool or connection; status remains unverified until independently tested",["kind","name","detail"]),spec("list_files","List directory in workspace",["path"]),spec("read_file","Read a text file in workspace",["path"]),spec("write_file","Propose writing a file; owner approval required",["path","content"]),spec("run_command","Propose a shell command; owner approval required",["command"])]
 def execute(name, a):
+    if name == "discover_projects":
+        found=[]
+        for base in (Path.home(),Path.home()/"Documents"/"ChatGPT",Path.home()/"agent",Path.home()/"Projects"):
+            if not base.is_dir(): continue
+            for p in sorted(base.iterdir()):
+                if p.name.startswith(".") or not p.is_dir() or p.is_symlink(): continue
+                markers=[n for n in (".git","docker-compose.yml","compose.yaml","package.json","pyproject.toml","requirements.txt") if (p/n).exists()]
+                if markers:
+                    found.append({"path":str(p),"markers":markers})
+                    register("project",str(p),", ".join(markers),"discovered / unverified")
+        return json.dumps(found)[:16000]
     if name == "inspect_docker": return docker_check()
     if name == "register_capability":
         if a["kind"] not in {"agent","tool","connection"}: raise ValueError("Invalid kind")
@@ -125,6 +136,9 @@ def advance():
     client = OpenAI(max_retries=0, timeout=60)
     for _ in range(12):
         payload=history()
+        # Preserve complete tool-call groups when trimming older conversation turns.
+        starts=[i for i,x in enumerate(payload) if x.get("role")=="user"]
+        if len(starts)>4: payload=payload[starts[-4]:]
         budget_check(payload)
         register("agent","Master","OpenAI "+MODEL,"running")
         event("Requesting model "+MODEL)
@@ -205,7 +219,8 @@ function add(t){const p=document.createElement('pre');p.textContent=t;log.append
 async function refresh(){
  try{
  const r=await fetch('/status',{headers:{'X-Jarvis-Token':token}});
- if(!r.ok)throw Error('Status unavailable');
+ if(r.status===403){location.reload();return;}
+ if(!r.ok)throw Error('Status unavailable (HTTP '+r.status+')');
  const x=await r.json();
  document.querySelector('#dashboard').textContent=[
  'Estimated API cost: USD '+x.cost[0].toFixed(4)+' today / USD '+x.cost[1].toFixed(4)+' month',
