@@ -243,8 +243,8 @@ def status():
     return jsonify(workers=WORKERS.list(),registry=entries,events=events,usage=usage,cost=totals(),budget=[float(os.getenv("DAILY_BUDGET","0.25")),float(os.getenv("MONTHLY_BUDGET","5"))])
 PAGE = """<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Krishna Jarvis</title>
-<style>body{background:#111318;color:#eee;font:16px system-ui;max-width:1000px;margin:30px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#20242c;padding:16px;border-radius:10px}textarea{width:100%;box-sizing:border-box;background:#20242c;color:white;padding:15px;border:1px solid #555}button{padding:12px;margin:8px;cursor:pointer}</style></head>
-<body><h1>KRISHNA JARVIS</h1><h2>Live dashboard</h2><pre id="dashboard">Loading...</pre><div id="log"></div><textarea id="msg" rows="4" placeholder="Assign a mission"></textarea><button id="send">Send</button>
+<style>body{background:#111318;color:#eee;font:16px system-ui;max-width:1000px;margin:30px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#20242c;padding:16px;border-radius:10px}textarea{width:100%;box-sizing:border-box;background:#20242c;color:white;padding:15px;border:1px solid #555}button{padding:12px;margin:8px;cursor:pointer}#metrics,#workforce{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}.metric,.worker{background:#20242c;border:1px solid #384858;border-radius:12px;padding:16px}.metric strong{display:block;font-size:26px;color:#8de0ff}.worker h3{margin:0 0 10px}.worker small{color:#aebdcc}.worker pre{max-height:350px;overflow:auto;padding:8px}.state{color:#8de0ff}summary{cursor:pointer;padding:10px} </style></head>
+<body><h1>KRISHNA JARVIS</h1><h2>Command Center</h2><div id="metrics"></div><h2>Agent workforce</h2><div id="workforce"></div><details><summary>Infrastructure and execution logs</summary><pre id="dashboard">Loading...</pre></details><div id="log"></div><textarea id="msg" rows="4" placeholder="Assign a mission"></textarea><button id="send">Send</button>
 <script>
 const token={{token|tojson}};
 const log=document.querySelector('#log'),msg=document.querySelector('#msg'),send=document.querySelector('#send');
@@ -255,6 +255,55 @@ async function refresh(){
  if(r.status===403){location.reload();return;}
  if(!r.ok)throw Error('Status unavailable (HTTP '+r.status+')');
  const x=await r.json();
+ const metrics=document.querySelector('#metrics'), workforce=document.querySelector('#workforce');
+ metrics.replaceChildren();
+ for(const [label,value] of [['Assigned workers (recent)',x.workers.length],['Running',x.workers.filter(a=>a[2]==='running').length],['Queued',x.workers.filter(a=>a[2]==='queued').length],['Completed',x.workers.filter(a=>a[2]==='completed').length],['API cost today','
+ 'Estimated API cost: USD '+x.cost[0].toFixed(4)+' today / USD '+x.cost[1].toFixed(4)+' month',
+ 'Budgets: USD '+x.budget.join(' / '),
+ 'Tokens (input/output/cached): '+x.usage.slice(0,3).join(' / '),
+ 'API calls: '+x.usage[3],
+ 'BACKGROUND WORKERS',...x.workers.map(a=>a.slice(0,3).join(' | ')),
+ 'MY AGENTS',...x.registry.filter(a=>a[0]==='agent').map(a=>a.slice(1).join(' | ')),
+ 'MY TASKS',...x.registry.filter(a=>a[0]==='task').slice(-30).map(a=>a.slice(1).join(' | ')),
+ 'MY CONNECTIONS',...x.registry.filter(a=>a[0]==='connection').map(a=>a.slice(1).join(' | ')),
+ 'RESOURCES AND TOOLS',...x.registry.filter(a=>!['agent','task','connection'].includes(a[0])).map(a=>a.join(' | ')),
+ 'RECENT ACTIVITY',...x.events.map(a=>a.join(' | '))
+ ].join(String.fromCharCode(10));
+ }catch(e){document.querySelector('#dashboard').textContent=String(e);}
+}
+async function call(url,data){
+ send.disabled=true;
+ try{
+ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});
+ const x=await r.json();
+ if(x.approval){
+ add('Permission needed: '+({write_file:'Create or update a file',run_command:'Run a local command',register_capability:'Register a capability'}[x.tool]||x.tool));
+ const details=document.createElement('details'), summary=document.createElement('summary'), pre=document.createElement('pre');
+ summary.textContent='Review exact action and technical details';pre.textContent=JSON.stringify(x.arguments,null,2);details.append(summary,pre);log.append(details);
+ add(x.tool==='run_command'?'This command runs with your Mac user permissions. Review before approving.':x.tool==='write_file'?'Target: '+x.arguments.path:'Registration does not verify execution.');
+ const b=document.createElement('button'),c=document.createElement('button');
+ b.textContent='Approve';c.textContent='Deny';log.append(b,c);
+ for(const [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};
+ }else add(x.text||x.error||'No response');
+ }catch(e){add(String(e));}finally{send.disabled=false;refresh();}
+}
+send.onclick=()=>{const t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
+refresh();setInterval(refresh,2000);
+</script></body></html>"""
+if __name__=="__main__":
+    if not os.getenv("OPENAI_API_KEY"): raise SystemExit("Set OPENAI_API_KEY in .env first")
+    register("agent","Master","OpenAI "+MODEL,"idle")
+    with db() as c:
+        c.execute("insert or ignore into registry values (?,?,?,?,?)",("connection","OpenAI",MODEL,"configured / unverified",now()))
+    for tool in TOOLS: register("tool",tool["name"],tool["description"],"available")
+    WORKERS.start()
+    app.run(host="127.0.0.1",port=8765,debug=False)
++x.cost[0].toFixed(4)]]){
+ const box=document.createElement('div'),v=document.createElement('strong');box.className='metric';v.textContent=value;box.append(v,document.createTextNode(label));metrics.append(box);}
+ const openIds=new Set([...workforce.querySelectorAll('details[open]')].map(e=>e.dataset.id));
+ workforce.replaceChildren();
+ for(const a of x.workers){const box=document.createElement('article'),title=document.createElement('h3'),state=document.createElement('p'),id=document.createElement('small'),details=document.createElement('details'),summary=document.createElement('summary'),result=document.createElement('pre');
+ box.className='worker';title.textContent=a[1];state.className='state';state.textContent=a[2].toUpperCase();id.textContent='Task '+a[0].slice(0,12);summary.textContent='View result';result.textContent=a[3]||'No result yet';details.dataset.id=a[0];details.open=openIds.has(a[0]);details.append(summary,result);box.append(title,state,id,details);workforce.append(box);}
  document.querySelector('#dashboard').textContent=[
  'Estimated API cost: USD '+x.cost[0].toFixed(4)+' today / USD '+x.cost[1].toFixed(4)+' month',
  'Budgets: USD '+x.budget.join(' / '),
