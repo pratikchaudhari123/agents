@@ -155,13 +155,45 @@ def status():
         events=c.execute("select at,detail from events order by id desc limit 20").fetchall()
         usage=c.execute("select coalesce(sum(input),0),coalesce(sum(output),0),coalesce(sum(cached),0),count(*) from usage").fetchone()
     return jsonify(registry=entries,events=events,usage=usage,cost=totals(),budget=[float(os.getenv("DAILY_BUDGET","0.25")),float(os.getenv("MONTHLY_BUDGET","5"))])
-PAGE = """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Krishna Jarvis</title><style>body{background:#101114;color:#eee;font:16px system-ui;max-width:850px;margin:40px auto;padding:20px}h1{font-size:24px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202228;padding:16px;border-radius:12px}textarea{width:100%;box-sizing:border-box;background:#202228;color:white;padding:15px;border:1px solid #555;border-radius:12px}button{padding:12px 20px;margin:8px;background:#eee;border:0;border-radius:8px;cursor:pointer}</style><h1>KRISHNA JARVIS</h1><p>Local personal agent · owner-approved execution</p><h2>Live dashboard</h2><pre id=dashboard>Loading local status...</pre><div id=log></div><textarea id=msg rows=4 placeholder="Assign a mission"></textarea><button id=send>Send</button><script>
-const token={{token|tojson}}, log=document.querySelector('#log'), msg=document.querySelector('#msg'), send=document.querySelector('#send');
-async function refresh(){try{let r=await fetch('/status',{headers:{'X-Jarvis-Token':token}}),x=await r.json();document.querySelector('#dashboard').textContent=['Estimated API cost: USD '+x.cost[0].toFixed(4)+' today / USD '+x.cost[1].toFixed(4)+' month','Budgets: USD '+x.budget.join(' / '),'Tokens (input/output/cached): '+x.usage.slice(0,3).join(' / '),'API calls: '+x.usage[3],'REGISTRY',...x.registry.map(a=>a[0]+' | '+a[1]+' | '+a[3]+' | '+a[2]),'RECENT ACTIVITY',...x.events.map(a=>a.join(' | '))].join('\\n');}catch(e){document.querySelector('#dashboard').textContent='Local status unavailable';}}refresh();setInterval(refresh,2000);
-function add(t){let p=document.createElement('pre');p.textContent=t;log.append(p);p.scrollIntoView();}
-async function call(url,data){send.disabled=true;try{let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});let x=await r.json();if(x.approval){add('Approval required: '+x.tool+'\\n'+JSON.stringify(x.arguments,null,2));let b=document.createElement('button'),c=document.createElement('button');b.textContent='Approve';c.textContent='Deny';log.append(b,c);for(let [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};return;}add(x.text||x.error||'No response');}catch(e){add(String(e));}finally{send.disabled=false;}}
-send.onclick=()=>{let t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
-</script>"""
+PAGE = """<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Krishna Jarvis</title>
+<style>body{background:#111318;color:#eee;font:16px system-ui;max-width:1000px;margin:30px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#20242c;padding:16px;border-radius:10px}textarea{width:100%;box-sizing:border-box;background:#20242c;color:white;padding:15px;border:1px solid #555}button{padding:12px;margin:8px;cursor:pointer}</style></head>
+<body><h1>KRISHNA JARVIS</h1><h2>Live dashboard</h2><pre id="dashboard">Loading...</pre><div id="log"></div><textarea id="msg" rows="4" placeholder="Assign a mission"></textarea><button id="send">Send</button>
+<script>
+const token={{token|tojson}};
+const log=document.querySelector('#log'),msg=document.querySelector('#msg'),send=document.querySelector('#send');
+function add(t){const p=document.createElement('pre');p.textContent=t;log.append(p);}
+async function refresh(){
+ try{
+ const r=await fetch('/status',{headers:{'X-Jarvis-Token':token}});
+ if(!r.ok)throw Error('Status unavailable');
+ const x=await r.json();
+ document.querySelector('#dashboard').textContent=[
+ 'Estimated API cost: USD '+x.cost[0].toFixed(4)+' today / USD '+x.cost[1].toFixed(4)+' month',
+ 'Budgets: USD '+x.budget.join(' / '),
+ 'Tokens (input/output/cached): '+x.usage.slice(0,3).join(' / '),
+ 'API calls: '+x.usage[3],
+ 'REGISTRY',...x.registry.map(a=>a.join(' | ')),
+ 'RECENT ACTIVITY',...x.events.map(a=>a.join(' | '))
+ ].join(String.fromCharCode(10));
+ }catch(e){document.querySelector('#dashboard').textContent=String(e);}
+}
+async function call(url,data){
+ send.disabled=true;
+ try{
+ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});
+ const x=await r.json();
+ if(x.approval){
+ add('Approval required: '+x.tool+String.fromCharCode(10)+JSON.stringify(x.arguments,null,2));
+ const b=document.createElement('button'),c=document.createElement('button');
+ b.textContent='Approve';c.textContent='Deny';log.append(b,c);
+ for(const [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};
+ }else add(x.text||x.error||'No response');
+ }catch(e){add(String(e));}finally{send.disabled=false;refresh();}
+}
+send.onclick=()=>{const t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
+refresh();setInterval(refresh,2000);
+</script></body></html>"""
 if __name__=="__main__":
     if not os.getenv("OPENAI_API_KEY"): raise SystemExit("Set OPENAI_API_KEY in .env first")
     register("agent","Master","OpenAI "+MODEL,"idle")
