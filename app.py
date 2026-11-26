@@ -200,32 +200,3 @@ if __name__=="__main__":
     register("connection","OpenAI",MODEL,"configured / unverified")
     for tool in TOOLS: register("tool",tool["name"],tool["description"],"available")
     app.run(host="127.0.0.1",port=8765,debug=False)
-+x.cost[0].toFixed(4)+' today / {let p=document.createElement('pre');p.textContent=t;log.append(p);p.scrollIntoView();}
-async function call(url,data){send.disabled=true;try{let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});let x=await r.json();if(x.approval){add('Approval required: '+x.tool+'\\n'+JSON.stringify(x.arguments,null,2));let b=document.createElement('button'),c=document.createElement('button');b.textContent='Approve';c.textContent='Deny';log.append(b,c);for(let [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};return;}add(x.text||x.error||'No response');}catch(e){add(String(e));}finally{send.disabled=false;}}
-send.onclick=()=>{let t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
-</script>"""
-if __name__=="__main__":
-    if not os.getenv("OPENAI_API_KEY"): raise SystemExit("Set OPENAI_API_KEY in .env first")
-    app.run(host="127.0.0.1",port=8765,debug=False)
-+x.cost[1].toFixed(4)+' month','Budgets: {let p=document.createElement('pre');p.textContent=t;log.append(p);p.scrollIntoView();}
-async function call(url,data){send.disabled=true;try{let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});let x=await r.json();if(x.approval){add('Approval required: '+x.tool+'\\n'+JSON.stringify(x.arguments,null,2));let b=document.createElement('button'),c=document.createElement('button');b.textContent='Approve';c.textContent='Deny';log.append(b,c);for(let [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};return;}add(x.text||x.error||'No response');}catch(e){add(String(e));}finally{send.disabled=false;}}
-send.onclick=()=>{let t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
-</script>"""
-if __name__=="__main__":
-    if not os.getenv("OPENAI_API_KEY"): raise SystemExit("Set OPENAI_API_KEY in .env first")
-    app.run(host="127.0.0.1",port=8765,debug=False)
-+x.budget.join(' / {let p=document.createElement('pre');p.textContent=t;log.append(p);p.scrollIntoView();}
-async function call(url,data){send.disabled=true;try{let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});let x=await r.json();if(x.approval){add('Approval required: '+x.tool+'\\n'+JSON.stringify(x.arguments,null,2));let b=document.createElement('button'),c=document.createElement('button');b.textContent='Approve';c.textContent='Deny';log.append(b,c);for(let [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};return;}add(x.text||x.error||'No response');}catch(e){add(String(e));}finally{send.disabled=false;}}
-send.onclick=()=>{let t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
-</script>"""
-if __name__=="__main__":
-    if not os.getenv("OPENAI_API_KEY"): raise SystemExit("Set OPENAI_API_KEY in .env first")
-    app.run(host="127.0.0.1",port=8765,debug=False)
-),'Tokens (input/output/cached): '+x.usage.slice(0,3).join(' / '),'API calls: '+x.usage[3],'REGISTRY',...x.registry.map(a=>a[0]+' | '+a[1]+' | '+a[3]+' | '+a[2]),'RECENT ACTIVITY',...x.events.map(a=>a.join(' | '))].join('\\n');}catch(e){document.querySelector('#dashboard').textContent='Local status unavailable';}}refresh();setInterval(refresh,2000);
-function add(t){let p=document.createElement('pre');p.textContent=t;log.append(p);p.scrollIntoView();}
-async function call(url,data){send.disabled=true;try{let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});let x=await r.json();if(x.approval){add('Approval required: '+x.tool+'\\n'+JSON.stringify(x.arguments,null,2));let b=document.createElement('button'),c=document.createElement('button');b.textContent='Approve';c.textContent='Deny';log.append(b,c);for(let [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};return;}add(x.text||x.error||'No response');}catch(e){add(String(e));}finally{send.disabled=false;}}
-send.onclick=()=>{let t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
-</script>"""
-if __name__=="__main__":
-    if not os.getenv("OPENAI_API_KEY"): raise SystemExit("Set OPENAI_API_KEY in .env first")
-    app.run(host="127.0.0.1",port=8765,debug=False)
