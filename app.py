@@ -192,7 +192,7 @@ def chat():
     with LOCK:
         if PENDING: return jsonify(error="Resolve pending approval first"),409
         message=str(request.json["message"])[:24000]
-        if re.search(r"\bdocker\b",message,re.I) and re.search(r"\b(check|inspect|audit|status|list|show)\b",message,re.I) and not re.search(r"\b(delete|remove|prune|stop|restart|install|start|build|run|pull|push)\b",message,re.I):
+        if re.fullmatch(r"\s*(?:(?:please\s+)?(?:check|inspect|audit|show)\s+(?:my\s+)?docker(?:\s+status)?|docker\s+status|list\s+docker\s+containers)\s*[.!?]?\s*",message,re.I):
             register("agent","Master","Local Docker inspection","running")
             try:
                 result=safe_execute("inspect_docker",{})
