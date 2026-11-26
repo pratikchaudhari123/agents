@@ -257,48 +257,7 @@ async function refresh(){
  const x=await r.json();
  const metrics=document.querySelector('#metrics'), workforce=document.querySelector('#workforce');
  metrics.replaceChildren();
- for(const [label,value] of [['Assigned workers (recent)',x.workers.length],['Running',x.workers.filter(a=>a[2]==='running').length],['Queued',x.workers.filter(a=>a[2]==='queued').length],['Completed',x.workers.filter(a=>a[2]==='completed').length],['API cost today','
- 'Estimated API cost: USD '+x.cost[0].toFixed(4)+' today / USD '+x.cost[1].toFixed(4)+' month',
- 'Budgets: USD '+x.budget.join(' / '),
- 'Tokens (input/output/cached): '+x.usage.slice(0,3).join(' / '),
- 'API calls: '+x.usage[3],
- 'BACKGROUND WORKERS',...x.workers.map(a=>a.slice(0,3).join(' | ')),
- 'MY AGENTS',...x.registry.filter(a=>a[0]==='agent').map(a=>a.slice(1).join(' | ')),
- 'MY TASKS',...x.registry.filter(a=>a[0]==='task').slice(-30).map(a=>a.slice(1).join(' | ')),
- 'MY CONNECTIONS',...x.registry.filter(a=>a[0]==='connection').map(a=>a.slice(1).join(' | ')),
- 'RESOURCES AND TOOLS',...x.registry.filter(a=>!['agent','task','connection'].includes(a[0])).map(a=>a.join(' | ')),
- 'RECENT ACTIVITY',...x.events.map(a=>a.join(' | '))
- ].join(String.fromCharCode(10));
- }catch(e){document.querySelector('#dashboard').textContent=String(e);}
-}
-async function call(url,data){
- send.disabled=true;
- try{
- const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Token':token},body:JSON.stringify(data)});
- const x=await r.json();
- if(x.approval){
- add('Permission needed: '+({write_file:'Create or update a file',run_command:'Run a local command',register_capability:'Register a capability'}[x.tool]||x.tool));
- const details=document.createElement('details'), summary=document.createElement('summary'), pre=document.createElement('pre');
- summary.textContent='Review exact action and technical details';pre.textContent=JSON.stringify(x.arguments,null,2);details.append(summary,pre);log.append(details);
- add(x.tool==='run_command'?'This command runs with your Mac user permissions. Review before approving.':x.tool==='write_file'?'Target: '+x.arguments.path:'Registration does not verify execution.');
- const b=document.createElement('button'),c=document.createElement('button');
- b.textContent='Approve';c.textContent='Deny';log.append(b,c);
- for(const [el,allow] of [[b,true],[c,false]])el.onclick=()=>{b.remove();c.remove();call('/approve',{id:x.approval,allow});};
- }else add(x.text||x.error||'No response');
- }catch(e){add(String(e));}finally{send.disabled=false;refresh();}
-}
-send.onclick=()=>{const t=msg.value.trim();if(!t)return;add('You: '+t);msg.value='';call('/chat',{message:t});};
-refresh();setInterval(refresh,2000);
-</script></body></html>"""
-if __name__=="__main__":
-    if not os.getenv("OPENAI_API_KEY"): raise SystemExit("Set OPENAI_API_KEY in .env first")
-    register("agent","Master","OpenAI "+MODEL,"idle")
-    with db() as c:
-        c.execute("insert or ignore into registry values (?,?,?,?,?)",("connection","OpenAI",MODEL,"configured / unverified",now()))
-    for tool in TOOLS: register("tool",tool["name"],tool["description"],"available")
-    WORKERS.start()
-    app.run(host="127.0.0.1",port=8765,debug=False)
-+x.cost[0].toFixed(4)]]){
+ for(const [label,value] of [['Assigned workers (recent)',x.workers.length],['Running',x.workers.filter(a=>a[2]==='running').length],['Queued',x.workers.filter(a=>a[2]==='queued').length],['Completed',x.workers.filter(a=>a[2]==='completed').length],['API cost today','$+x.cost[0].toFixed(4)]]){
  const box=document.createElement('div'),v=document.createElement('strong');box.className='metric';v.textContent=value;box.append(v,document.createTextNode(label));metrics.append(box);}
  const openIds=new Set([...workforce.querySelectorAll('details[open]')].map(e=>e.dataset.id));
  workforce.replaceChildren();
@@ -309,7 +268,7 @@ if __name__=="__main__":
  'Budgets: USD '+x.budget.join(' / '),
  'Tokens (input/output/cached): '+x.usage.slice(0,3).join(' / '),
  'API calls: '+x.usage[3],
- 'BACKGROUND WORKERS',...x.workers.map(a=>a.join(' | ')),
+ 'BACKGROUND WORKERS',...x.workers.map(a=>a.slice(0,3).join(' | ')),
  'MY AGENTS',...x.registry.filter(a=>a[0]==='agent').map(a=>a.slice(1).join(' | ')),
  'MY TASKS',...x.registry.filter(a=>a[0]==='task').slice(-30).map(a=>a.slice(1).join(' | ')),
  'MY CONNECTIONS',...x.registry.filter(a=>a[0]==='connection').map(a=>a.slice(1).join(' | ')),
