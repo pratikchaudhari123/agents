@@ -257,7 +257,7 @@ async function refresh(){
  const x=await r.json();
  const metrics=document.querySelector('#metrics'), workforce=document.querySelector('#workforce');
  metrics.replaceChildren();
- for(const [label,value] of [['Assigned workers (recent)',x.workers.length],['Running',x.workers.filter(a=>a[2]==='running').length],['Queued',x.workers.filter(a=>a[2]==='queued').length],['Completed',x.workers.filter(a=>a[2]==='completed').length],['API cost today','$+x.cost[0].toFixed(4)]]){
+ for(const [label,value] of [['Assigned workers (recent)',x.workers.length],['Running',x.workers.filter(a=>a[2]==='running').length],['Queued',x.workers.filter(a=>a[2]==='queued').length],['Completed',x.workers.filter(a=>a[2]==='completed').length],['API cost today','USD '+x.cost[0].toFixed(4)]]){
  const box=document.createElement('div'),v=document.createElement('strong');box.className='metric';v.textContent=value;box.append(v,document.createTextNode(label));metrics.append(box);}
  const openIds=new Set([...workforce.querySelectorAll('details[open]')].map(e=>e.dataset.id));
  workforce.replaceChildren();
